@@ -111,46 +111,13 @@ function onDocumentMouseMove(event) {
 // Mouse click event
 function onDocumentMouseClick(event) {
     if (INTERSECTED) {
-        const popup = document.getElementById('popup');
-        const popupText = document.getElementById('popup-text');
-        popupText.innerText = INTERSECTED.userData.text;
-
-        const vector = new THREE.Vector3();
-        vector.setFromMatrixPosition(INTERSECTED.matrixWorld);
-        vector.project(camera);
-        vector.x = (vector.x * 0.5 + 0.5) * window.innerWidth;
-        vector.y = -(vector.y * 0.5 - 0.5) * window.innerHeight;
-
-        popup.style.left = `${vector.x}px`;
-        popup.style.top = `${vector.y}px`;
-        popup.style.display = 'block';
-        popup.style.opacity = '0';
-        setTimeout(() => { popup.style.opacity = '1'; }, 10);
-        INTERSECTED.userData.moving = false;
+        document.getElementById('popup-text').innerText = INTERSECTED.userData.text;
+        document.getElementById('popup').style.display = 'block';
     }
-}
-
-// Close popup function
-function closePopup() {
-    const popup = document.getElementById('popup');
-    popup.style.opacity = '0';
-    setTimeout(() => {
-        popup.style.display = 'none';
-        if (INTERSECTED) INTERSECTED.userData.moving = true;
-        INTERSECTED = null;
-    }, 300);
 }
 
 document.addEventListener('mousemove', onDocumentMouseMove, false);
 document.addEventListener('click', onDocumentMouseClick, false);
-
-// Close popup by clicking outside
-document.addEventListener('click', (event) => {
-    const popup = document.getElementById('popup');
-    if (popup.style.display === 'block' && !popup.contains(event.target) && INTERSECTED) {
-        closePopup();
-    }
-});
 
 // Function to update the lines to follow the moving dots
 function updateLines() {
@@ -178,12 +145,10 @@ function moveDots(dotsArray) {
 function highlightLines(dot) {
     lines.forEach(line => {
         if (line.dot1 === dot || line.dot2 === dot) {
-            new TWEEN.Tween(line.line.material).to({ color: new THREE.Color(0xffd700) }, 500).easing(TWEEN.Easing.Quadratic.Out).start();
-            new TWEEN.Tween(line.line.material).to({ linewidth: 2 }, 500).easing(TWEEN.Easing.Quadratic.Out).start();
+            line.line.material.color.setHex(0xffd700);
             setTimeout(() => {
-                new TWEEN.Tween(line.line.material).to({ color: new THREE.Color(0xd3d3d3) }, 500).easing(TWEEN.Easing.Quadratic.Out).start();
-                new TWEEN.Tween(line.line.material).to({ linewidth: 1 }, 500).easing(TWEEN.Easing.Quadratic.Out).start();
-            }, 1000); // Return to normal after 1 second
+                line.line.material.color.setHex(0xd3d3d3);
+            }, 500); // Return to normal after 0.5 seconds
         }
     });
 }
@@ -204,8 +169,8 @@ function animate() {
         if (INTERSECTED != intersects[0].object) {
             if (INTERSECTED) {
                 INTERSECTED.userData.moving = true;  // Resume movement for previously intersected dot
-                new TWEEN.Tween(INTERSECTED.scale).to({ x: 1, y: 1, z: 1 }, 300).start(); // Smooth transition back
-                new TWEEN.Tween(INTERSECTED.material.emissive).to({ r: 0, g: 0, b: 0 }, 300).start(); // Remove outer glow
+                INTERSECTED.scale.set(1, 1, 1); // Reset size for previously intersected dot
+                INTERSECTED.material.emissive.setHex(0x000000); // Remove outer glow
                 interactiveDots.forEach(dot => {
                     if (dot !== INTERSECTED) dot.userData.speed = normalSpeed; // Reset speed for interactive dots
                 });
@@ -216,8 +181,8 @@ function animate() {
             }
             INTERSECTED = intersects[0].object;
             INTERSECTED.userData.moving = false;   // Stop movement for currently intersected dot
-            new TWEEN.Tween(INTERSECTED.scale).to({ x: 2.5, y: 2.5, z: 2.5 }, 300).start(); // Smooth transition grow
-            new TWEEN.Tween(INTERSECTED.material.emissive).to({ r: 1, g: 0.84, b: 0 }, 300).start(); // Outer glow gold
+            INTERSECTED.scale.set(1.5, 1.5, 1.5); // Grow size for currently intersected dot
+            INTERSECTED.material.emissive.setHex(0xffd700); // Outer glow gold
             document.body.style.cursor = 'pointer'; // Change cursor to pointer
             interactiveDots.forEach(dot => {
                 if (dot !== INTERSECTED) dot.userData.speed = hoverSpeed; // Slow down interactive dots
@@ -232,8 +197,8 @@ function animate() {
     } else {
         if (INTERSECTED) {
             INTERSECTED.userData.moving = true;  // Resume movement if no dot is intersected
-            new TWEEN.Tween(INTERSECTED.scale).to({ x: 1, y: 1, z: 1 }, 300).start(); // Smooth transition back
-            new TWEEN.Tween(INTERSECTED.material.emissive).to({ r: 0, g: 0, b: 0 }, 300).start(); // Remove outer glow
+            INTERSECTED.scale.set(1, 1, 1); // Reset size for previously intersected dot
+            INTERSECTED.material.emissive.setHex(0x000000); // Remove outer glow
             interactiveDots.forEach(dot => dot.userData.speed = normalSpeed); // Reset speed for interactive dots
             nonInteractiveDots.forEach(dot => dot.userData.speed = normalSpeed); // Reset speed for non-interactive dots
             document.body.style.cursor = 'auto'; // Reset cursor
@@ -244,15 +209,11 @@ function animate() {
     // Update lines to follow the dots
     updateLines();
 
-    TWEEN.update();
-
     renderer.render(scene, camera);
 }
 
 animate();
 
-// Zoom in and out with scroll
-document.addEventListener('wheel', (event) => {
-    camera.position.z += event.deltaY * 0.1;
-    camera.position.z = Math.max(50, Math.min(200, camera.position.z)); // Min zoom 50, max zoom 200
-});
+function closePopup() {
+    document.getElementById('popup').style.display = 'none';
+}
